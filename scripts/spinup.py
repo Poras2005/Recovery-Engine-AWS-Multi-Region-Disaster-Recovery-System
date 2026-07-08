@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Restore both regions to full DR capacity."""
 
-import boto3, getpass, time, yaml
+import boto3, getpass, os, time, yaml
 from pathlib import Path
 
 cfg = yaml.safe_load(open(Path(__file__).parent.parent / 'config.yaml'))

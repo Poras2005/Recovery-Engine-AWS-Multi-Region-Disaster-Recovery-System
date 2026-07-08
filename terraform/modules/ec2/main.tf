@@ -12,6 +12,7 @@ variable "account_id" { type = string }
 variable "image_tag" { type = string }
 variable "use_spot" { default = false }
 variable "db_secret_arn" { type = string }
+variable "db_host" { type = string }
 
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
@@ -129,6 +130,7 @@ resource "aws_autoscaling_group" "app" {
   }
 
   tag {
+    
     key                 = "Name"
     value               = "${var.app_name}-asg"
     propagate_at_launch = true
@@ -137,4 +139,3 @@ resource "aws_autoscaling_group" "app" {
 
 output "asg_name" { value = aws_autoscaling_group.app.name }
 output "security_group_id" { value = aws_security_group.ec2.id }
-p.ec2.id }

@@ -4,7 +4,7 @@ Simulates a Mumbai regional failure by stopping all primary EC2
 instances, then monitors Route 53 switching to Singapore.
 """
 
-import boto3, getpass, requests, socket, time, yaml
+import boto3, getpass, os, requests, socket, time, yaml
 from datetime import datetime
 from pathlib import Path
 

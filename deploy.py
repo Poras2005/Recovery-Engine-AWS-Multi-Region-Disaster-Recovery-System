@@ -125,7 +125,7 @@ def confirm_deploy(cfg, creds):
     print(' Use --teardown when not demoing to keep costs < $8/month')
     print()
     answer = input(' Proceed with full deployment? (yes/no): ').strip().lower()
-    if answer != 'yes':
+    if answer not in ['yes', 'y']:
         print(' Deployment cancelled.')
         sys.exit(0)
 

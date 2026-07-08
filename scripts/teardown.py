@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scale both regions down to save money. Run every night."""
 
-import boto3, getpass, yaml
+import boto3, getpass, os, yaml
 from pathlib import Path
 
 cfg = yaml.safe_load(open(Path(__file__).parent.parent / 'config.yaml'))
