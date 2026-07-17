@@ -30,6 +30,20 @@ app = Flask(__name__)
 # ── Global State for Failover Simulation ───────────────────────
 IS_FAILED = False
 
+@app.before_request
+def check_failure_simulation():
+    # Allow health checks and simulation control endpoints to bypass interceptor
+    bypass_paths = ['/health', '/simulate-fail', '/simulate-recover']
+    if IS_FAILED and request.path in bypass_paths:
+        return
+    if IS_FAILED:
+        logger.warning(f"Request to {request.path} intercepted and failed due to simulation")
+        return jsonify({
+            'error': 'Service temporarily unavailable (DR Simulation Active)',
+            'region': REGION
+        }), 503
+
+
 # ── Database Configuration ─────────────────────────────────────
 DB_HOST = os.environ.get('DB_HOST')
 DB_USER = 'admin'
@@ -123,6 +137,15 @@ def add_message():
         conn.commit()
         logger.info(f"New message saved from {REGION}", extra={'props': {'content_length': len(content)}})
         return jsonify({'status': 'success'}), 201
+    except pymysql.err.OperationalError as e:
+        if e.args and e.args[0] == 1290:
+            logger.error("Database is in read-only mode (read-replica). Cannot write message.")
+            return jsonify({
+                'error': 'Database is read-only',
+                'details': 'The standby region is active, but the database replica has not been promoted to primary yet.'
+            }), 503
+        logger.error(f"Database operational error: {e}")
+        return jsonify({'error': 'Database operational error'}), 500
     except Exception as e:
         logger.error(f"Failed to save message: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -148,7 +171,14 @@ def simulate_fail():
     global IS_FAILED
     IS_FAILED = True
     logger.critical(f"FAILOVER SIMULATION TRIGGERED IN {REGION}")
-    return jsonify({'message': f'Failure simulation started in {REGION}. Route 53 will detect this shortly.'})
+    return jsonify({'message': f'Failure simulation started in {REGION}. Route 53 or CloudFront will detect this shortly.'})
+
+@app.route('/simulate-recover', methods=['POST'])
+def simulate_recover():
+    global IS_FAILED
+    IS_FAILED = False
+    logger.info(f"FAILOVER SIMULATION RECOVERED IN {REGION}")
+    return jsonify({'message': f'Failure simulation stopped in {REGION}. Region is healthy again.'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

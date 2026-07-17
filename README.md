@@ -4,12 +4,13 @@ A cloud-native disaster recovery platform built on AWS to simulate multi-region 
 
 This project demonstrates practical implementation of:
 - Multi-region deployment architecture
-- Route53 DNS failover
+- Route 53 DNS or CloudFront Origin Group failover
 - Cross-region database replication
 - Infrastructure automation with Terraform
 - Containerized microservices
 - CI/CD security validation
 - Cloud monitoring and failover testing
+
 
 ---
 
@@ -19,15 +20,16 @@ The system deploys application infrastructure across two AWS regions in an activ
 
 ## Core Components
 
-- AWS EC2 instances for application hosting
+- AWS EC2 instances for application hosting (Free Tier optimized, no NAT Gateway costs)
 - Auto Scaling Groups for workload resilience
 - Elastic Load Balancers for traffic distribution
-- Route53 health checks and DNS failover
-- Cross-region Amazon RDS replication
+- CloudFront Origin Groups or Route 53 health checks & DNS failover
+- Cross-region Single-AZ Amazon RDS replication
 - Dockerized Flask microservice
 - Terraform-based infrastructure provisioning
 - GitHub Actions CI/CD workflows
 - CloudWatch monitoring and alerting
+
 
 ---
 
@@ -51,7 +53,8 @@ The system deploys application infrastructure across two AWS regions in an activ
 
 ## Multi-Region Failover
 
-Implemented Route53 DNS failover between primary and secondary AWS regions using health checks and automated traffic redirection.
+Implemented CloudFront Origin Group failover (domain-less) and Route 53 DNS failover (custom domain) between primary and secondary AWS regions using automated health checks and traffic redirection.
+
 
 ## Infrastructure Automation
 
@@ -88,21 +91,21 @@ Configured CloudWatch monitoring for:
 ```bash
 .
 ├── terraform/
-│   ├── modules/
-│   ├── environments/
-│   └── main.tf
+│   ├── global/         # Route 53 & CloudFront global config
+│   ├── modules/        # Reusable VPC, EC2, RDS, Monitoring modules
+│   └── regions/        # Regional configs (mumbai, singapore)
 │
 ├── app/
-│   ├── routes/
-│   ├── templates/
 │   ├── Dockerfile
-│   └── app.py
+│   ├── app.py          # Flask app code
+│   └── requirements.txt
 │
-├── .github/workflows/
+├── deploy.sh           # Master deployment orchestrator (Bash)
+├── config.yaml         # Configuration parameters
 │
-├── monitoring/
+├── .github/workflows/  # CI/CD pipelines
 │
-└── scripts/
+└── scripts/            # Operational Bash scripts (teardown, spinup, failover, promotion)
 ```
 
 ---
@@ -111,10 +114,11 @@ Configured CloudWatch monitoring for:
 
 1. Provision AWS infrastructure using Terraform
 2. Build and containerize Flask application
-3. Deploy workloads to primary AWS region
-4. Configure Route53 health checks and failover policies
-5. Enable cross-region RDS replication
-6. Validate failover using simulated outages
+3. Deploy workloads to primary AWS region (Mumbai)
+4. Configure CloudFront Origin Group (or Route 53 failover)
+5. Enable cross-region RDS replication (Singapore replica)
+6. Validate failover using simulated outages (ASG scale-down)
+
 
 ---
 
@@ -126,9 +130,10 @@ Configured CloudWatch monitoring for:
 - Route53 continuously monitors endpoint health
 
 ## Failover Scenario
-- Route53 detects application failure
-- DNS traffic redirects to secondary region
+- CloudFront/Route 53 detects application failure
+- Traffic automatically redirects to the secondary region (Singapore)
 - Secondary infrastructure serves application traffic
+
 
 ---
 
@@ -140,9 +145,10 @@ The project was tested using simulated application and infrastructure failures.
 
 - EC2 application shutdown
 - Health-check failure simulation
-- Route53 DNS failover behavior
+- CloudFront Origin Group / Route 53 failover behavior
 - Terraform infrastructure recreation
 - CI/CD security validation workflows
+
 
 ### Observations
 

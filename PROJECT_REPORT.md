@@ -69,10 +69,12 @@ If you are a fresher, this project proves three major things:
 ## 7. 🛠️ How to use this project?
 It is designed to be **"Plug and Play"**:
 
-1.  **Requirements:** You just need an AWS account and a computer with Python installed.
-2.  **Configuration:** You put your email (for alerts) and your domain name in a small `config.yaml` file.
-3.  **The Command:** You run `python3 deploy.py`.
-4.  **The Result:** The script builds the network, the servers, the databases, and the security rules across two continents automatically.
+1.  **Requirements:** You just need an AWS account and a computer with Bash shell and AWS CLI installed.
+2.  **Configuration:** You put your email (for alerts) and your domain name in a small `config.yaml` file (or set domain to `none` to use free CloudFront failover).
+3.  **Live at:** http://{domain} or https://{cloudfront_dns}
+4.  **Simulate failover :** `./scripts/test_failover.sh`
+5.  **Save money / Nuke :** `./scripts/teardown.sh`
+6.  **The Result:** The script builds the network, the servers, the databases, and the security rules across two continents automatically.
 
 ---
 
@@ -80,8 +82,8 @@ It is designed to be **"Plug and Play"**:
 Every file in this project has a specific "Job" (Work) and a specific "Impact" (Influence) on the final system. Here is the breakdown:
 
 ### 🚀 Orchestration & Configuration
-*   **`deploy.py` (The Brain)**
-    *   **Work:** This is the master script. it talks to AWS, checks your passwords, and runs the Terraform commands in the right order.
+*   **`deploy.sh` (The Brain)**
+    *   **Work:** This is the master script in Bash. It talks to AWS, checks your credentials, and runs the Terraform commands in the right order.
     *   **Influence:** It ensures the deployment is **Error-Free** and **Secure**. Without this, you would have to run 20+ manual commands perfectly.
 *   **`config.yaml` (The Map)**
     *   **Work:** It holds the settings like your Region names, Email for alerts, and Domain name.
@@ -105,12 +107,12 @@ Every file in this project has a specific "Job" (Work) and a specific "Impact" (
     *   **Influence:** Enables **Automatic Failover**. This is the file that actually performs the "teleportation" of traffic during a disaster.
 
 ### 🐍 Operational Scripts
-*   **`scripts/test_failover.py` (The Drill)**
-    *   **Work:** Intentionally "breaks" the Mumbai servers to see if the system recovers.
+*   **`scripts/test_failover.sh` (The Drill)**
+    *   **Work:** Intentionally shuts down the Mumbai servers (scales ASG to 0) to see if the system recovers and traffic fails over to Singapore.
     *   **Influence:** Provides **Confidence**. It proves the system works *before* a real disaster happens.
-*   **`scripts/teardown.py` & `spinup.py` (The Cost Savers)**
-    *   **Work:** Scales the system down to 1 server at night and back to full power in the morning.
-    *   **Influence:** Saves **Money**. It can reduce your AWS bill by up to 70% during development.
+*   **`scripts/teardown.sh` & `scripts/spinup.sh` (Cost Savers & Cleanup)**
+    *   **Work:** `teardown.sh` completely destroys all AWS resources to keep your account clean and costs at $0. `spinup.sh` scales servers up to default desired capacity.
+    *   **Influence:** Saves **Money**. Ensures you only pay for what you use, and deletes everything in one command.
 
 ### 🌐 The Application
 *   **`app/app.py` (The Product)**
@@ -132,7 +134,7 @@ Every file in this project has a specific "Job" (Work) and a specific "Impact" (
 
 ## 10. ✅ Frequently Asked Questions
 *   **Is it expensive?** No. It uses "Free Tier" eligible parts where possible. It also has a `--teardown` command to delete everything and save money when you're done.
-*   **Do I need to be an expert?** No. The `deploy.py` script is like an "Easy Button." It handles the complex AWS commands for you.
+*   **Do I need to be an expert?** No. The `deploy.sh` script is like an "Easy Button." It handles the complex AWS commands for you.
 *   **What happens to the data?** The database in Singapore is a "Read Replica." It stays perfectly in sync with Mumbai, so no data is lost during a failover.
 
 ---
@@ -142,7 +144,7 @@ We have added 4 high-level features that are usually only found in senior-level 
 
 1.  **Secret Management+**: Instead of passing passwords around, the system now creates a **Secure Vault** (AWS Secrets Manager). The servers "call" this vault only when they need it.
 2.  **Visual Dashboard**: A **CloudWatch Dashboard** is built automatically. It gives you a "One-Click" view of how your servers and load balancers are performing in both regions.
-3.  **Auto-Rollback**: The "Brain" (`deploy.py`) is now smarter. If it detects a failure during building, it **automatically scales down** to prevent huge AWS bills and keeps the environment clean.
+3.  **Auto-Rollback**: The "Brain" (`deploy.sh`) is now smarter. If it detects a failure during building, it **automatically tears down** resources to prevent huge AWS bills and keeps the environment clean.
 4.  **Cost Ninja (Spot)**: In the Singapore (Standby) region, we use **Spot Instances**. These are spare AWS servers that cost **70-90% less** than normal servers, saving you massive amounts of money.
 
 ---

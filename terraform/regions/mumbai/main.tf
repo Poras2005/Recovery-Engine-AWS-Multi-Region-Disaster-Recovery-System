@@ -36,7 +36,7 @@ module "alb" {
 module "ec2" {
   source           = "../../modules/ec2"
   vpc_id           = module.vpc.vpc_id
-  private_subnets  = module.vpc.private_subnets
+  private_subnets  = module.vpc.public_subnets
   alb_sg_id        = module.alb.security_group_id
   target_group_arn = module.alb.target_group_arn
   app_name         = var.app_name
@@ -59,7 +59,7 @@ module "rds" {
   ec2_sg_id       = module.ec2.security_group_id
   app_name        = var.app_name
   region          = "ap-south-1"
-  multi_az        = true
+  multi_az        = false
   db_password     = var.db_password
 }
 

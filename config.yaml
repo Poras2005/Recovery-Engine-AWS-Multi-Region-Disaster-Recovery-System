@@ -15,7 +15,7 @@ terraform:
   lock_table: terraform-state-lock
 
 route53:
-  domain: <YOUR_DOMAIN> # e.g. dr.yourdomain.com
+  domain: none # Set to a real domain if you have one, or set to 'none' / leave empty to use CloudFront failover without a domain
   health_check_path: /health
   failover_ttl: 10
 

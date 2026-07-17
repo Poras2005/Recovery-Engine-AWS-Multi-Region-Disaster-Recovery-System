@@ -13,6 +13,11 @@ variable "image_tag" { type = string }
 variable "use_spot" { default = false }
 variable "db_secret_arn" { type = string }
 variable "db_host" { type = string }
+variable "ecr_region" {
+  type    = string
+  default = "ap-south-1"
+}
+
 
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
@@ -101,9 +106,9 @@ resource "aws_launch_template" "app" {
               # Fetch DB Password securely
               DB_PASS=$(aws secretsmanager get-secret-value --secret-id ${var.db_secret_arn} --query SecretString --output text --region ${var.region})
 
-              aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${var.account_id}.dkr.ecr.${var.region}.amazonaws.com
-              docker pull ${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.app_name}:${var.image_tag}
-              docker run -d -p 5000:5000 -e AWS_REGION=${var.region} -e DB_PASSWORD=$DB_PASS -e DB_HOST=${var.db_host} ${var.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.app_name}:${var.image_tag}
+              aws ecr get-login-password --region ${var.ecr_region} | docker login --username AWS --password-stdin ${var.account_id}.dkr.ecr.${var.ecr_region}.amazonaws.com
+              docker pull ${var.account_id}.dkr.ecr.${var.ecr_region}.amazonaws.com/${var.app_name}:${var.image_tag}
+              docker run -d -p 5000:5000 -e AWS_REGION=${var.region} -e DB_PASSWORD=$DB_PASS -e DB_HOST=${var.db_host} ${var.account_id}.dkr.ecr.${var.ecr_region}.amazonaws.com/${var.app_name}:${var.image_tag}
               EOF
   )
 

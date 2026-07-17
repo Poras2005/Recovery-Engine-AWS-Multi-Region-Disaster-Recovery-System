@@ -34,30 +34,19 @@ resource "aws_subnet" "private" {
   tags = { Name = "${var.app_name}-priv-${count.index}" }
 }
 
-resource "aws_eip" "nat" {
-  domain = "vpc"
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-  tags          = { Name = "${var.app_name}-nat" }
-}
-
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
+  tags = { Name = "${var.app_name}-public-rt" }
 }
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
+  # No route to 0.0.0.0/0. Databases in private subnets do not need public internet access.
+  tags   = { Name = "${var.app_name}-private-rt" }
 }
 
 resource "aws_route_table_association" "public" {

@@ -1,119 +1,126 @@
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
- > analyze this whole folder (insted of relyion only on scipts and readme and project_report scan all files and folders included then  ) 
-   and give me full deployment steps in details i will be deploying this project through ubuntu virtualized os provide each step with    
-   why to do it and if there are some requirements that i have to downliodwe provide steps to download it [i dont have domain so provide 
-   steps accordingly and in simple languade]                                                                                             
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-✦ Since you do not have a domain name, we will adapt the deployment to use the AWS-provided Load Balancer URLs. This allows you to see
-  the project working for free without buying a domain.
+# 🌍 Multi-Region DR System Deployment Guide (Ubuntu VM)
 
-  Here are the detailed steps to deploy this on your Ubuntu Virtual Machine.
+This guide provides detailed instructions to deploy and test the Cloud Guard Disaster Recovery system on an Ubuntu Virtual Machine. It is fully optimized for the **AWS Free Tier** and operates **without requiring a custom domain**.
 
-  ---
+---
 
-  Step 1: Install the Required Tools
-  Your Ubuntu VM needs four main "helpers" to build this system.
+### Step 1: Install Required Tools
+Run the following commands on your Ubuntu VM to set up Python, Docker, Terraform, and the AWS CLI:
 
-  1. Update Ubuntu
-   * Command: sudo apt update && sudo apt upgrade -y
-   * Why: Ensures your system is secure and ready for new software.
+1. **Update System Packages**
+   * **Command:** `sudo apt update && sudo apt upgrade -y`
+   * **Why:** Ensures your system is secure and ready for new software.
 
-  2. Install Python (The Orchestrator)
-   * Command: sudo apt install python3 python3-pip -y
-   * Why: The deploy.py script is the "brain" that runs everything.
-   * Download Check: Type python3 --version to confirm.
+2. **Install Python and PyYAML**
+   * **Command:** `sudo apt install python3 python3-pip -y && pip3 install pyyaml`
+   * **Why:** Used for parsing settings from `config.yaml`.
 
-  3. Install Docker (The Container)
-   * Command: 
+3. **Install Docker**
+   * **Command:**
+     ```bash
+     sudo apt install docker.io -y
+     sudo usermod -aG docker $USER
+     ```
+   * **Why:** The app is containerized.
+   * **CRITICAL:** Log out of your VM session and log back in (or close and reopen your terminal) to apply the new Docker group membership!
 
-   1     sudo apt install docker.io -y
-   2     sudo usermod -aG docker $USER
-   3     # IMPORTANT: Close your terminal and reopen it now to apply this!
-   * Why: Your website app is packed into a "Docker Image" so it runs exactly the same on AWS as it does on your machine.
+4. **Install Terraform**
+   * **Command:**
+     ```bash
+     wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+     sudo apt update && sudo apt install terraform -y
+     ```
+   * **Why:** Terraform reads your configuration and builds your AWS network, servers, and databases automatically.
 
-  4. Install Terraform (The Builder)
-   * Download Steps:
+5. **Install AWS CLI**
+   * **Command:** `sudo apt install awscli -y`
+   * **Why:** Allows your VM to communicate with your AWS account securely.
 
-   1     wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-   2     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs)
-     main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-   3     sudo apt update && sudo apt install terraform -y
-   * Why: Terraform reads the files in the terraform/ folder and automatically builds the network, servers, and databases on AWS.
+---
 
-  5. Install AWS CLI (The Communicator)
-   * Command: sudo apt install awscli -y
-   * Why: This allows your Ubuntu VM to "talk" to your AWS account securely.
+### Step 2: Configure AWS Credentials
+You need to tell the AWS CLI which account to use.
+1. Log into your AWS Console.
+2. Go to **IAM** -> **Users** -> **Select Your User** -> **Security Credentials**.
+3. Create an **Access Key**.
+4. On your Ubuntu VM, run:
+   ```bash
+   aws configure
+   ```
+5. Paste your **Access Key ID**, **Secret Access Key**, and set the default region to `ap-south-1`.
 
-  ---
+---
 
-  Step 2: Get Your AWS Credentials
-  You need to tell Ubuntu which AWS account to use.
-   1. Log into your AWS Console.
-   2. Go to IAM -> Users -> Your User -> Security Credentials.
-   3. Create an Access Key.
-   4. On Ubuntu, type: aws configure
-   5. Paste your Access Key ID, Secret Key, and set the region to ap-south-1.
+### Step 3: Configure config.yaml
+1. Open the configuration file in nano:
+   ```bash
+   nano config.yaml
+   ```
+2. Look for `route53: domain`.
+3. Set the domain to `none` (this is the default):
+   ```yaml
+   route53:
+     domain: none
+   ```
+   * **Why:** Setting it to `none` tells the orchestrator to deploy an **AWS CloudFront Distribution with an Origin Group** instead of Route 53. This gives you a free `cloudfront.net` domain name that performs dynamic region failover without buying a domain!
 
-  ---
+---
 
-  Step 3: Prepare the Project Code
-   1. Clone the project: git clone <your-repo-link> && cd aws-multi-region-dr
-   2. Install Python requirements: pip3 install boto3 pyyaml requests
-   3. Handle the "No Domain" issue:
-       * Open the config file: nano config.yaml
-       * Look for domain: <YOUR_DOMAIN>.
-       * Change it to something fake like: domain: my-test-dr.local
-       * Why: The script expects a domain name to exist. By putting a fake one, the script will finish its work, but we will use the AWS
-         ALB URL (a long string like dr-app-alb-12345.ap-south-1.elb.amazonaws.com) to actually view our website.
+### Step 4: Run the Deployment
+Start the automatic deployment script:
+1. Make the scripts executable:
+   ```bash
+   chmod +x deploy.sh scripts/*.sh
+   ```
+2. Run the deployment:
+   ```bash
+   ./deploy.sh
+   ```
+* **What happens:** The script builds the Flask app Docker image locally, pushes it to ECR, provisions VPC networks in Mumbai and Singapore, starts the EC2 instances in public subnets (saving you NAT Gateway costs), sets up the single-AZ RDS database in Mumbai with a read replica in Singapore, and configures the CloudFront failover distribution.
+* **Wait Time:** This takes around 10 to 15 minutes (mainly due to RDS database provisioning).
+* **Completion:** Once done, it will output:
+  `Live at: https://xxxxxx.cloudfront.net`
 
-  ---
+---
 
-  Step 4: Run the Deployment
-  Now, we start the automatic process.
+### Step 5: How to Access Your App
+Copy the CloudFront URL printed at the end of the deployment (e.g., `https://xxxxxx.cloudfront.net`) and paste it into your browser. 
+* You will see a JSON response stating `"region": "ap-south-1"`, meaning your traffic is routed to the primary region (Mumbai).
+* You can write a message by sending a POST request to `https://xxxxxx.cloudfront.net/message` with JSON body `{"content": "Hello World!"}`.
 
-   * Command: python3 deploy.py
-   * What will happen?
-       * It will build your app (Docker).
-       * It will create a "Safe Box" (S3) for your data.
-       * It will build the Mumbai servers and Singapore servers.
-   * Wait Time: This takes about 15 to 20 minutes because AWS is setting up a real database (RDS) for you.
+---
 
-  ---
+### Step 6: Testing the "Disaster" (Failover)
+This is the core verification of the disaster recovery setup:
 
-  Step 5: How to see your website (Without a Domain)
-  Since you don't have a domain, the "Phase 6 DNS Check" might fail or wait forever. Don't worry. 
+1. **Trigger simulated outage:**
+   Run the failover test script:
+   ```bash
+   ./deploy.sh --failover-test
+   ```
+   * **What it does:** It scales the Mumbai Auto Scaling Group down to 0, terminating the primary servers.
+2. **Observe region switching:**
+   The script will begin polling the CloudFront endpoint every 10 seconds. You will see it transition from `ap-south-1` to `ap-southeast-1` within seconds!
+3. **Verify in browser:**
+   Refresh your browser at the CloudFront URL. You will see `"region": "ap-southeast-1"`, confirming that traffic has failed over to Singapore.
+4. **Promote the database replica (Optional):**
+   Since the Singapore database is a read replica, writes will fail with a read-only warning. To promote the database to primary and enable writes in Singapore, run:
+   ```bash
+   ./scripts/promote_db.sh
+   ```
+   * The database will reboot and become read-write in 2-3 minutes.
+5. **Restore the system:**
+   To spin the Mumbai region back up and restore default DR capacity, run:
+   ```bash
+   ./deploy.sh --spinup
+   ```
 
-   1. Look at the terminal output for a line like: Mumbai ALB: dr-app-alb-....amazonaws.com.
-   2. Copy that long URL.
-   3. Paste it into your web browser.
-   4. You are now viewing your live app!
+---
 
-  ---
-
-  Step 6: Testing the "Disaster"
-  This is the most important part of the project.
-
-   1. Open the Mumbai URL in your browser. You will see "Region: ap-south-1".
-   2. On Ubuntu, run: python3 deploy.py --failover-test
-       * Why: This script manually "kills" the Mumbai servers to see if the system is smart enough to survive.
-   3. Now, find the Singapore ALB URL in your logs or AWS Console.
-   4. Open the Singapore URL. You will see "Region: ap-southeast-1".
-   5. Success: Even though the first region "died," your website is still alive in the second region!
-
-  ---
-
-  Step 7: Cleanup (Save Money!)
-  AWS charges you by the hour. Since this is a test, you should scale it down when finished.
-
-   * Command: python3 deploy.py --teardown
-   * Why: This reduces your servers to 1 in Mumbai and 0 in Singapore, keeping your cost very low (a few cents) while you aren't using
-     it.
-   * To delete everything permanently: Go to the AWS Console and manually delete the RDS Database and the Load Balancers if you never
-     plan to use them again.
-
-  ---
-
-  Summary of "No Domain" Hack
-   * Normally: People use www.myweb.com which points to Mumbai or Singapore automatically.
-   * Your Case: You will have two URLs (one for Mumbai, one for Singapore). You can visit either one directly to prove that the databases
-     are syncing and the app is running in both places!
+### Step 7: Clean Up (Save Money!)
+AWS charges for active resources. When you are done demonstrating the project, run:
+```bash
+./deploy.sh --teardown
+```
+* **Why:** This runs a complete nuke. It deletes all VPCs, ALBs, databases, CloudFront configurations, ECR repositories, DynamoDB tables, and S3 state buckets in a single, non-interactive command, returning your AWS account to a completely clean state.

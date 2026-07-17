@@ -47,7 +47,7 @@ module "alb" {
 module "ec2" {
   source           = "../../modules/ec2"
   vpc_id           = module.vpc.vpc_id
-  private_subnets  = module.vpc.private_subnets
+  private_subnets  = module.vpc.public_subnets
   alb_sg_id        = module.alb.security_group_id
   target_group_arn = module.alb.target_group_arn
   app_name         = var.app_name
