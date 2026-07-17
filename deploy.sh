@@ -178,10 +178,23 @@ phase1() {
     docker build -t "${APP_NAME}:${IMAGE_TAG}" ./app
     log "Starting container for local health check..."
     docker run -d -p "${PORT}:${PORT}" --name dr-local "${APP_NAME}:${IMAGE_TAG}"
-    sleep 3
-    if curl -sf "http://localhost:${PORT}/health" >/dev/null; then
+    
+    log "Waiting for local container to start..."
+    local healthy=false
+    for i in {1..10}; do
+        sleep 2
+        if curl -sf "http://localhost:${PORT}/health" >/dev/null; then
+            healthy=true
+            break
+        fi
+        log "Container not ready yet, retrying check ($i/10)..."
+    done
+
+    if [ "$healthy" = true ]; then
         log "Local health check passed." "OK"
     else
+        log "Printing container logs for debugging:" "WARN"
+        docker logs dr-local || true
         docker stop dr-local && docker rm dr-local
         abort "Local health check failed."
     fi
@@ -305,6 +318,9 @@ phase4() {
     for p in "${params[@]}"; do
         local name="${p%%:*}"
         local val="${p#*:}"
+        if [ -z "$val" ]; then
+            val="none"
+        fi
         aws ssm put-parameter --name "$name" --value "$val" --type "SecureString" --overwrite --region "$PRIMARY_REGION"
         log "Stored: $name" "OK"
     done
