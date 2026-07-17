@@ -11,9 +11,16 @@ Run the following commands on your Ubuntu VM to set up Python, Docker, Terraform
    * **Command:** `sudo apt update && sudo apt upgrade -y`
    * **Why:** Ensures your system is secure and ready for new software.
 
-2. **Install Python and PyYAML**
-   * **Command:** `sudo apt install python3 python3-pip -y && pip3 install pyyaml`
-   * **Why:** Used for parsing settings from `config.yaml`.
+2. **Install Python and Setup Virtual Environment**
+   * **Command:**
+     ```bash
+     sudo apt install python3 python3-pip python3-venv -y
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install pyyaml boto3
+     ```
+   * **Why:** Used for parsing settings from `config.yaml` and for AWS resource cleanup scripts. Creating a virtual environment (`venv`) is recommended to avoid package conflicts on modern Ubuntu versions (which block global `pip` installation).
+
 
 3. **Install Docker**
    * **Command:**
@@ -73,8 +80,9 @@ Start the automatic deployment script:
    ```bash
    chmod +x deploy.sh scripts/*.sh
    ```
-2. Run the deployment:
+2. Activate the Python virtual environment and run the deployment:
    ```bash
+   source venv/bin/activate
    ./deploy.sh
    ```
 * **What happens:** The script builds the Flask app Docker image locally, pushes it to ECR, provisions VPC networks in Mumbai and Singapore, starts the EC2 instances in public subnets (saving you NAT Gateway costs), sets up the single-AZ RDS database in Mumbai with a read replica in Singapore, and configures the CloudFront failover distribution.
@@ -97,6 +105,7 @@ This is the core verification of the disaster recovery setup:
 1. **Trigger simulated outage:**
    Run the failover test script:
    ```bash
+   source venv/bin/activate
    ./deploy.sh --failover-test
    ```
    * **What it does:** It scales the Mumbai Auto Scaling Group down to 0, terminating the primary servers.
@@ -119,8 +128,9 @@ This is the core verification of the disaster recovery setup:
 ---
 
 ### Step 7: Clean Up (Save Money!)
-AWS charges for active resources. When you are done demonstrating the project, run:
+AWS charges for active resources. When you are done demonstrating the project, activate the virtual environment and run the teardown:
 ```bash
+source venv/bin/activate
 ./deploy.sh --teardown
 ```
-* **Why:** This runs a complete nuke. It deletes all VPCs, ALBs, databases, CloudFront configurations, ECR repositories, DynamoDB tables, and S3 state buckets in a single, non-interactive command, returning your AWS account to a completely clean state.
+* **Why:** This runs a complete nuke. It deletes all VPCs, ALBs, databases, CloudFront configurations, ECR repositories, DynamoDB tables, S3 state buckets, SSM parameters, CloudWatch alarms, and SNS topics in a single, non-interactive command, returning your AWS account to a completely clean state.
