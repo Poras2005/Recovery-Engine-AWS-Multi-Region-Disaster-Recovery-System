@@ -332,6 +332,12 @@ phase5() {
     local email=$(parse_yaml "$CONFIG_FILE" "['alerts']['email']")
     local cpu=$(parse_yaml "$CONFIG_FILE" "['alerts']['cpu_threshold']")
     
+    # Check if email is valid or placeholder
+    if [ -z "$email" ] || [ "$email" = "null" ] || [ "$email" = "<YOUR_EMAIL>" ] || [[ "$email" == *"<"* ]]; then
+        log "No alert email configured or placeholder found. Skipping SNS & CloudWatch alarms." "WARN"
+        return
+    fi
+
     # Create SNS Topic
     log "Creating SNS Topic dr-alerts in $PRIMARY_REGION..."
     local topic_arn=$(aws sns create-topic --name dr-alerts --region "$PRIMARY_REGION" --query "TopicArn" --output text)
