@@ -2,6 +2,7 @@
 # deploy.sh — AWS Multi-Region DR System Master Orchestrator in Bash
 
 set -e
+ROOT_DIR=$(pwd)
 
 # Helper to print formatting
 log() {
@@ -177,6 +178,7 @@ phase1() {
     banner "PHASE 1 — Docker Build & Local Health Check"
     docker build -t "${APP_NAME}:${IMAGE_TAG}" ./app
     log "Starting container for local health check..."
+    docker rm -f dr-local 2>/dev/null || true
     docker run -d -p "${PORT}:${PORT}" --name dr-local "${APP_NAME}:${IMAGE_TAG}"
     
     log "Waiting for local container to start..."
@@ -272,22 +274,21 @@ tf_apply() {
     cd "$folder"
     terraform init -reconfigure -backend-config="bucket=${bucket}"
     terraform apply -auto-approve
-    local out=$(terraform output -json)
-    cd ../.. || cd ../../..
-    echo "$out"
+    terraform output -json > tf_out.json
+    cd "$ROOT_DIR"
 }
 
 phase3() {
     banner "PHASE 3 — Terraform: Mumbai + Singapore + Global Routing"
     
     log "Deploying Mumbai (Primary)..."
-    local m_out=$(tf_apply "terraform/regions/mumbai")
-    local m_alb=$(echo "$m_out" | python3 -c "import sys, json; print(json.load(sys.stdin).get('alb_dns_name', {}).get('value', ''))" 2>/dev/null)
+    tf_apply "terraform/regions/mumbai"
+    local m_alb=$(python3 -c "import json; print(json.load(open('terraform/regions/mumbai/tf_out.json')).get('alb_dns_name', {}).get('value', ''))" 2>/dev/null)
     log "Mumbai ALB: $m_alb" "OK"
 
     log "Deploying Singapore (Secondary)..."
-    local s_out=$(tf_apply "terraform/regions/singapore")
-    local s_alb=$(echo "$s_out" | python3 -c "import sys, json; print(json.load(sys.stdin).get('alb_dns_name', {}).get('value', ''))" 2>/dev/null)
+    tf_apply "terraform/regions/singapore"
+    local s_alb=$(python3 -c "import json; print(json.load(open('terraform/regions/singapore/tf_out.json')).get('alb_dns_name', {}).get('value', ''))" 2>/dev/null)
     log "Singapore ALB: $s_alb" "OK"
 
     log "Deploying Global resources (Route 53 / CloudFront)..."
@@ -295,13 +296,13 @@ phase3() {
     local hpath=$(parse_yaml "$CONFIG_FILE" "['route53']['health_check_path']")
     local ttl=$(parse_yaml "$CONFIG_FILE" "['route53']['failover_ttl']")
     
-    local g_out=$(tf_apply "terraform/global" "export TF_VAR_primary_alb_dns='$m_alb' TF_VAR_secondary_alb_dns='$s_alb' TF_VAR_domain='$domain' TF_VAR_health_check_path='$hpath' TF_VAR_failover_ttl='$ttl'")
+    tf_apply "terraform/global" "export TF_VAR_primary_alb_dns='$m_alb' TF_VAR_secondary_alb_dns='$s_alb' TF_VAR_domain='$domain' TF_VAR_health_check_path='$hpath' TF_VAR_failover_ttl='$ttl'"
     
-    local has_domain=$(echo "$g_out" | python3 -c "import sys, json; print(json.load(sys.stdin).get('has_domain', {}).get('value', False))" 2>/dev/null)
-    if [ "$has_domain" = "True" ]; then
+    local has_domain=$(python3 -c "import json; print(json.load(open('terraform/global/tf_out.json')).get('has_domain', {}).get('value', False))" 2>/dev/null)
+    if [ "$has_domain" = "True" ] || [ "$has_domain" = "true" ]; then
         log "Route 53 failover routing live." "OK"
     else
-        local cf_dns=$(echo "$g_out" | python3 -c "import sys, json; print(json.load(sys.stdin).get('cloudfront_dns_name', {}).get('value', ''))" 2>/dev/null)
+        local cf_dns=$(python3 -c "import json; print(json.load(open('terraform/global/tf_out.json')).get('cloudfront_dns_name', {}).get('value', ''))" 2>/dev/null)
         log "CloudFront failover routing live at: https://$cf_dns" "OK"
     fi
 }
@@ -433,13 +434,13 @@ if [ -z "$PHASE" ]; then
     elapsed=$((t1 - t0))
     
     cd terraform/global
-    g_out=$(terraform output -json 2>/dev/null || echo "{}")
+    terraform output -json > tf_out.json 2>/dev/null || echo "{}" > tf_out.json
     cd ../..
-    has_domain=$(echo "$g_out" | python3 -c "import sys, json; print(json.load(sys.stdin).get('has_domain', {}).get('value', False))" 2>/dev/null)
-    if [ "$has_domain" = "True" ]; then
-        live_url="http://$(echo "$g_out" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("route53_domain", {}).get("value", ""))' 2>/dev/null)"
+    has_domain=$(python3 -c "import json; print(json.load(open('terraform/global/tf_out.json')).get('has_domain', {}).get('value', False))" 2>/dev/null)
+    if [ "$has_domain" = "True" ] || [ "$has_domain" = "true" ]; then
+        live_url="http://$(python3 -c 'import json; print(json.load(open("terraform/global/tf_out.json")).get("route53_domain", {}).get("value", ""))' 2>/dev/null)"
     else
-        live_url="https://$(echo "$g_out" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("cloudfront_dns_name", {}).get("value", ""))' 2>/dev/null)"
+        live_url="https://$(python3 -c 'import json; print(json.load(open("terraform/global/tf_out.json")).get("cloudfront_dns_name", {}).get("value", ""))' 2>/dev/null)"
     fi
     
     banner "ALL DONE in ${elapsed}s"
