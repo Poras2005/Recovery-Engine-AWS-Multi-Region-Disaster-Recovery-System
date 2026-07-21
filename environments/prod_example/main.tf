@@ -1,4 +1,4 @@
-# Primary Region Networking (Mumbai)
+# Primary Region Networking (Mumbai - Production)
 module "primary_networking" {
   source = "../../modules/networking"
 
@@ -15,11 +15,11 @@ module "primary_networking" {
 
   tags = {
     Region = var.primary_region
-    Role   = "Primary-VPC"
+    Role   = "Primary-VPC-Production"
   }
 }
 
-# Secondary Region Networking (Singapore)
+# Secondary Region Networking (Singapore - Production DR)
 module "secondary_networking" {
   source = "../../modules/networking"
 
@@ -36,11 +36,11 @@ module "secondary_networking" {
 
   tags = {
     Region = var.secondary_region
-    Role   = "Secondary-VPC"
+    Role   = "Secondary-VPC-Production"
   }
 }
 
-# IAM Baseline Modules (Least-Privilege Roles & Policies)
+# IAM Baseline Module
 module "iam_baseline" {
   source = "../../modules/iam"
 
@@ -50,11 +50,11 @@ module "iam_baseline" {
 
   environment = var.environment
   tags = {
-    Role = "IAM-Baseline"
+    Role = "IAM-Baseline-Production"
   }
 }
 
-# Module 2 Task 1: Primary RDS Instance (Mumbai)
+# Primary RDS Instance (Mumbai - Production Multi-AZ)
 module "primary_rds" {
   source = "../../modules/rds_primary"
 
@@ -70,15 +70,15 @@ module "primary_rds" {
   db_subnet_group_name    = module.primary_networking.db_subnet_group_name
   vpc_security_group_ids  = [module.primary_networking.rds_security_group_id]
   multi_az                = true
-  backup_retention_period = 7
+  backup_retention_period = 30
 
   tags = {
     Region = var.primary_region
-    Role   = "Primary-Database"
+    Role   = "Primary-Database-Production"
   }
 }
 
-# Module 2 Task 2: Cross-Region Read Replica (Singapore)
+# Secondary RDS Read Replica (Singapore - Production DR)
 module "secondary_rds_replica" {
   source = "../../modules/rds_replica"
 
@@ -95,11 +95,11 @@ module "secondary_rds_replica" {
 
   tags = {
     Region = var.secondary_region
-    Role   = "Cross-Region-Read-Replica"
+    Role   = "Cross-Region-Read-Replica-Production"
   }
 }
 
-# Module 3: Route53 Failover Routing
+# Route53 Failover Routing Policy
 module "route53_failover" {
   source = "../../modules/route53_failover"
 
@@ -122,11 +122,11 @@ module "route53_failover" {
   record_ttl           = 10
 
   tags = {
-    Role = "Route53-Failover-Routing"
+    Role = "Route53-Failover-Routing-Production"
   }
 }
 
-# Module 5 Task 1: Monitoring & SNS Alerting Subsystem
+# Monitoring & SNS Alerting Subsystem
 module "monitoring" {
   source = "../../modules/monitoring"
 
@@ -139,13 +139,9 @@ module "monitoring" {
   replica_db_id                 = module.secondary_rds_replica.replica_instance_id
   route53_health_check_id       = module.route53_failover.primary_health_check_id
   alert_email                   = var.alert_email
-  replica_lag_threshold_seconds = 300 # 5 min RPO threshold
+  replica_lag_threshold_seconds = 300
 
   tags = {
-    Role = "Monitoring-Alerting"
+    Role = "Monitoring-Alerting-Production"
   }
 }
-
-
-
-

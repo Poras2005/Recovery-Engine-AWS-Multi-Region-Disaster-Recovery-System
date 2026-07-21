@@ -51,4 +51,4 @@ route53:
   record_name: "db.recovery-engine.internal"
 
 notifications:
-  sns_email: "alert@example.com"
+  sns_email: "barhateporas@gmail.com"

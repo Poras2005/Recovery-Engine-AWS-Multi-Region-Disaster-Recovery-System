@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RecoveryEngineConfigSchema",
+  "description": "Validation schema for Recovery-Engine YAML configuration files",
+  "type": "object",
+  "required": ["version", "global", "regions", "database", "route53"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "global": {
+      "type": "object",
+      "required": ["environment", "project_name", "target_rto_minutes", "target_rpo_minutes"],
+      "properties": {
+        "environment": {
+          "type": "string",
+          "enum": ["dev", "staging", "prod", "test"]
+        },
+        "project_name": {
+          "type": "string",
+          "minLength": 3
+        },
+        "target_rto_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "target_rpo_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        }
+      }
+    },
+    "regions": {
+      "type": "object",
+      "required": ["primary", "secondary"],
+      "properties": {
+        "primary": {
+          "type": "object",
+          "required": ["name", "region", "vpc_cidr"],
+          "properties": {
+            "name": { "type": "string" },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z]{2}-[a-z]+-[0-9]+$"
+            },
+            "vpc_cidr": { "type": "string" }
+          }
+        },
+        "secondary": {
+          "type": "object",
+          "required": ["name", "region", "vpc_cidr"],
+          "properties": {
+            "name": { "type": "string" },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z]{2}-[a-z]+-[0-9]+$"
+            },
+            "vpc_cidr": { "type": "string" }
+          }
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["engine", "instance_class", "database_name"],
+      "properties": {
+        "engine": { "type": "string" },
+        "engine_version": { "type": "string" },
+        "instance_class": { "type": "string" },
+        "allocated_storage_gb": { "type": "integer" },
+        "database_name": { "type": "string" },
+        "backup_retention_days": { "type": "integer" }
+      }
+    },
+    "route53": {
+      "type": "object",
+      "required": ["domain_name", "record_name"],
+      "properties": {
+        "domain_name": { "type": "string" },
+        "record_name": { "type": "string" }
+      }
+    }
+  }
+}

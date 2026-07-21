@@ -83,5 +83,22 @@ output "route53_primary_health_check_id" {
   value       = module.route53_failover.primary_health_check_id
 }
 
+output "monitoring_sns_topic_arn" {
+  description = "ARN of the Disaster Recovery SNS Alert Topic"
+  value       = module.monitoring.sns_topic_arn
+}
+
+output "monitoring_primary_cpu_alarm_arn" {
+  description = "ARN of the Primary RDS High CPU CloudWatch Alarm"
+  value       = module.monitoring.primary_cpu_alarm_arn
+}
+
+output "monitoring_cloudwatch_dashboard_name" {
+  description = "Name of the Multi-Region CloudWatch DR Dashboard"
+  value       = module.monitoring.dashboard_name
+}
+
+
+
 
 

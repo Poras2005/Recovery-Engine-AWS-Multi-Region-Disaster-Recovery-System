@@ -1,0 +1,31 @@
+# ==============================================================================
+# Recovery-Engine: Production Environment Variables Template (prod_example)
+# ==============================================================================
+
+environment      = "prod"
+primary_region   = "ap-south-1"
+secondary_region = "ap-southeast-1"
+
+# Primary Region Network Parameters (Mumbai Production)
+primary_vpc_cidr             = "10.100.0.0/16"
+primary_public_subnet_cidrs  = ["10.100.1.0/24", "10.100.2.0/24"]
+primary_private_subnet_cidrs = ["10.100.10.0/24", "10.100.11.0/24"]
+primary_azs                  = ["ap-south-1a", "ap-south-1b"]
+
+# Secondary Region Network Parameters (Singapore Production DR)
+secondary_vpc_cidr             = "10.200.0.0/16"
+secondary_public_subnet_cidrs  = ["10.200.1.0/24", "10.200.2.0/24"]
+secondary_private_subnet_cidrs = ["10.200.10.0/24", "10.200.11.0/24"]
+secondary_azs                  = ["ap-southeast-1a", "ap-southeast-1b"]
+
+# Production Database Parameters
+db_name           = "recoverydb_prod"
+db_username       = "prod_admin"
+db_password       = "ReplaceWithSecureVaultPassword123!"
+db_instance_class = "db.r6g.large"
+
+# Domain & Route53 Parameters
+domain_name = "recovery-engine-prod.internal"
+
+# Alerting Parameters
+alert_email = "prod-alerts@example.com"

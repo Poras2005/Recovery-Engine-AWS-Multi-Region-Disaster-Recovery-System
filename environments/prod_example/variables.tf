@@ -1,10 +1,10 @@
 variable "environment" {
   description = "Environment name"
   type        = string
-  default     = "dev"
+  default     = "prod"
 }
 
-# Primary Region Variables
+# Primary Region Variables (Mumbai)
 variable "primary_region" {
   description = "AWS Primary region code"
   type        = string
@@ -14,19 +14,19 @@ variable "primary_region" {
 variable "primary_vpc_cidr" {
   description = "VPC CIDR for primary region"
   type        = string
-  default     = "10.10.0.0/16"
+  default     = "10.100.0.0/16"
 }
 
 variable "primary_public_subnet_cidrs" {
   description = "Public subnet CIDRs for primary region"
   type        = list(string)
-  default     = ["10.10.1.0/24", "10.10.2.0/24"]
+  default     = ["10.100.1.0/24", "10.100.2.0/24"]
 }
 
 variable "primary_private_subnet_cidrs" {
   description = "Private subnet CIDRs for primary region"
   type        = list(string)
-  default     = ["10.10.10.0/24", "10.10.11.0/24"]
+  default     = ["10.100.10.0/24", "10.100.11.0/24"]
 }
 
 variable "primary_azs" {
@@ -35,7 +35,7 @@ variable "primary_azs" {
   default     = ["ap-south-1a", "ap-south-1b"]
 }
 
-# Secondary Region Variables
+# Secondary Region Variables (Singapore)
 variable "secondary_region" {
   description = "AWS Secondary (DR) region code"
   type        = string
@@ -45,19 +45,19 @@ variable "secondary_region" {
 variable "secondary_vpc_cidr" {
   description = "VPC CIDR for secondary region"
   type        = string
-  default     = "10.20.0.0/16"
+  default     = "10.200.0.0/16"
 }
 
 variable "secondary_public_subnet_cidrs" {
   description = "Public subnet CIDRs for secondary region"
   type        = list(string)
-  default     = ["10.20.1.0/24", "10.20.2.0/24"]
+  default     = ["10.200.1.0/24", "10.200.2.0/24"]
 }
 
 variable "secondary_private_subnet_cidrs" {
   description = "Private subnet CIDRs for secondary region"
   type        = list(string)
-  default     = ["10.20.10.0/24", "10.20.11.0/24"]
+  default     = ["10.200.10.0/24", "10.200.11.0/24"]
 }
 
 variable "secondary_azs" {
@@ -66,11 +66,11 @@ variable "secondary_azs" {
   default     = ["ap-southeast-1a", "ap-southeast-1b"]
 }
 
-# Database Variables
+# Database Variables (Production Instance Class)
 variable "db_name" {
   description = "Name of the initial database"
   type        = string
-  default     = "recoverydb"
+  default     = "recoverydb_prod"
 }
 
 variable "db_username" {
@@ -83,28 +83,25 @@ variable "db_password" {
   description = "Master password for database"
   type        = string
   sensitive   = true
-  default     = "ChangeMeInTfVars123!"
+  default     = "ChangeMeInProdTfVars123!"
 }
 
 variable "db_instance_class" {
-  description = "RDS instance class"
+  description = "RDS instance class for production"
   type        = string
-  default     = "db.t4g.micro"
+  default     = "db.r6g.large"
 }
 
 # Domain & Route53 Variables
 variable "domain_name" {
   description = "Route53 Private Hosted Zone domain name"
   type        = string
-  default     = "recovery-engine.internal"
+  default     = "recovery-engine-prod.internal"
 }
 
 # Monitoring & Alerting Variables
 variable "alert_email" {
-  description = "Optional email address for SNS alert notifications"
+  description = "Email address for production SNS alert notifications"
   type        = string
-  default     = ""
+  default     = "prod-alerts@example.com"
 }
-
-
-

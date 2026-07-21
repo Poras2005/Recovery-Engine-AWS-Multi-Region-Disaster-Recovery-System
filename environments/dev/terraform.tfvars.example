@@ -1,15 +1,31 @@
-environment = "dev"
+# ==============================================================================
+# Recovery-Engine: Terraform Environment Variables Example (dev)
+# ==============================================================================
 
-# Primary Region (Mumbai)
-primary_region               = "ap-south-1"
+environment     = "dev"
+primary_region  = "ap-south-1"
+secondary_region = "ap-southeast-1"
+
+# Primary Region Network Parameters (Mumbai)
 primary_vpc_cidr             = "10.10.0.0/16"
 primary_public_subnet_cidrs  = ["10.10.1.0/24", "10.10.2.0/24"]
 primary_private_subnet_cidrs = ["10.10.10.0/24", "10.10.11.0/24"]
 primary_azs                  = ["ap-south-1a", "ap-south-1b"]
 
-# Secondary Region (Singapore)
-secondary_region               = "ap-southeast-1"
+# Secondary Region Network Parameters (Singapore)
 secondary_vpc_cidr             = "10.20.0.0/16"
 secondary_public_subnet_cidrs  = ["10.20.1.0/24", "10.20.2.0/24"]
 secondary_private_subnet_cidrs = ["10.20.10.0/24", "10.20.11.0/24"]
 secondary_azs                  = ["ap-southeast-1a", "ap-southeast-1b"]
+
+# Database Parameters
+db_name           = "recoverydb"
+db_username       = "adminuser"
+db_password       = "ChangeMeInTfVars123!"
+db_instance_class = "db.t4g.micro"
+
+# Domain & Route53 Parameters
+domain_name = "recovery-engine.internal"
+
+# Alerting Parameters
+alert_email = "alert@example.com"
