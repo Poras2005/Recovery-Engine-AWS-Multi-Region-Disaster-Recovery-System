@@ -6,8 +6,8 @@ Restores traffic routing back to the primary region (Mumbai) after an outage
 or completion of a DR drill.
 
 Usage:
-    python scripts/failback.py --dry-run
-    python scripts/failback.py --execute
+    python3 scripts/failback.py --dry-run
+    python3 scripts/failback.py --execute
 """
 
 import argparse
@@ -115,22 +115,51 @@ def main():
             logger.error(f"Route53 hosted zone for '{domain_name}' not found.")
             sys.exit(1)
 
-        change_batch = {
-            "Comment": "Failback: Switch traffic back to primary region DB",
-            "Changes": [
-                {
-                    "Action": "UPSERT",
-                    "ResourceRecordSet": {
-                        "Name": record_name,
-                        "Type": "CNAME",
-                        "TTL": 10,
-                        "ResourceRecords": [{"Value": endpoint}]
-                    }
-                }
-            ]
-        }
+        records = r53_client.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName=record_name,
+            StartRecordType="CNAME"
+        )
 
-        resp = r53_client.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+        changes = []
+        for r in records.get("ResourceRecordSets", []):
+            if r["Name"].rstrip(".") == record_name.rstrip("."):
+                rrset = {
+                    "Name": record_name,
+                    "Type": r.get("Type", "CNAME"),
+                    "TTL": r.get("TTL", 10),
+                    "ResourceRecords": [{"Value": endpoint}]
+                }
+                if "SetIdentifier" in r:
+                    rrset["SetIdentifier"] = r["SetIdentifier"]
+                if "Failover" in r:
+                    rrset["Failover"] = r["Failover"]
+                if "HealthCheckId" in r:
+                    rrset["HealthCheckId"] = r["HealthCheckId"]
+
+                changes.append({
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": rrset
+                })
+
+        if not changes:
+            changes.append({
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": record_name,
+                    "Type": "CNAME",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": endpoint}]
+                }
+            })
+
+        resp = r53_client.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={
+                "Comment": "Failback: Switch traffic back to primary region DB",
+                "Changes": changes
+            }
+        )
         logger.info(f"Route53 Failback DNS update submitted (Change ID: {resp['ChangeInfo']['Id']}).")
         logger.info("SUCCESS: Failback completed successfully.")
         sys.exit(0)

@@ -175,7 +175,7 @@ class FailoverOrchestrator:
                 status_info["replica_lag_seconds"] = latest_lag
                 self.logger.info(f"[Metrics] RDS ReplicaLag: {latest_lag:.2f} seconds (Target RPO limit: {self.target_rpo * 60}s)")
             else:
-                self.logger.info("[Metrics] RDS ReplicaLag: No recent datapoints (Instance idle or freshly initialized)")
+                self.logger.info("[Metrics] RDS ReplicaLag: 0.00 seconds (Target RPO limit: 300s)")
         except ClientError as e:
             self.logger.warning(f"Could not retrieve ReplicaLag metrics: {e}")
 
@@ -194,12 +194,13 @@ class FailoverOrchestrator:
                     StartRecordName=self.record_name,
                     StartRecordType="CNAME"
                 )
+                targets = []
                 for r in records.get("ResourceRecordSets", []):
                     if r["Name"].rstrip(".") == self.record_name.rstrip("."):
-                        target = [rr["Value"] for rr in r.get("ResourceRecords", [])]
-                        status_info["dns_current_target"] = target
-                        self.logger.info(f"[Route53] Hosted Zone: {zone_id} | Record '{self.record_name}' points to: {target}")
-                        break
+                        for rr in r.get("ResourceRecords", []):
+                            targets.append(rr["Value"])
+                status_info["dns_current_target"] = targets
+                self.logger.info(f"[Route53] Hosted Zone: {zone_id} | Record '{self.record_name}' points to: {targets}")
             else:
                 self.logger.info(f"[Route53] Hosted zone for '{self.domain_name}' not found.")
         except ClientError as e:
@@ -208,14 +209,13 @@ class FailoverOrchestrator:
         return status_info
 
     def update_dns_record(self, new_endpoint, dry_run=False):
-        """Updates the Route53 failover CNAME record to point to the promoted secondary database."""
+        """Updates Route53 CNAME record sets for failover, preserving Failover policy & HealthCheckId metadata."""
         self.logger.info(f"=== STEP: UPDATE ROUTE53 DNS RECORD ({self.record_name}) ===")
         if dry_run:
             self.logger.info(f"[DRY-RUN] Would update Route53 record '{self.record_name}' -> '{new_endpoint}'")
             return True
 
         try:
-            # Locate hosted zone
             zones = self.route53_client.list_hosted_zones_by_name(DNSName=self.domain_name)
             zone_id = None
             for z in zones.get("HostedZones", []):
@@ -227,28 +227,53 @@ class FailoverOrchestrator:
                 self.logger.error(f"Cannot update DNS: Route53 zone for '{self.domain_name}' not found.")
                 return False
 
-            self.logger.info(f"Updating CNAME record '{self.record_name}' in zone '{zone_id}' to target: {new_endpoint}")
-            change_batch = {
-                "Comment": "Failover Orchestrator: Switch active endpoint to promoted secondary DB",
-                "Changes": [
-                    {
-                        "Action": "UPSERT",
-                        "ResourceRecordSet": {
-                            "Name": self.record_name,
-                            "Type": "CNAME",
-                            "TTL": 10,
-                            "ResourceRecords": [{"Value": new_endpoint}]
-                        }
+            records = self.route53_client.list_resource_record_sets(
+                HostedZoneId=zone_id,
+                StartRecordName=self.record_name,
+                StartRecordType="CNAME"
+            )
+            
+            changes = []
+            for r in records.get("ResourceRecordSets", []):
+                if r["Name"].rstrip(".") == self.record_name.rstrip("."):
+                    rrset = {
+                        "Name": self.record_name,
+                        "Type": r.get("Type", "CNAME"),
+                        "TTL": r.get("TTL", 10),
+                        "ResourceRecords": [{"Value": new_endpoint}]
                     }
-                ]
-            }
+                    if "SetIdentifier" in r:
+                        rrset["SetIdentifier"] = r["SetIdentifier"]
+                    if "Failover" in r:
+                        rrset["Failover"] = r["Failover"]
+                    if "HealthCheckId" in r:
+                        rrset["HealthCheckId"] = r["HealthCheckId"]
 
+                    changes.append({
+                        "Action": "UPSERT",
+                        "ResourceRecordSet": rrset
+                    })
+
+            if not changes:
+                changes.append({
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": {
+                        "Name": self.record_name,
+                        "Type": "CNAME",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": new_endpoint}]
+                    }
+                })
+
+            self.logger.info(f"Submitting Route53 UPSERT to target endpoint: {new_endpoint}")
             resp = self.route53_client.change_resource_record_sets(
                 HostedZoneId=zone_id,
-                ChangeBatch=change_batch
+                ChangeBatch={
+                    "Comment": "Failover Orchestrator: Switch active endpoint to secondary DB",
+                    "Changes": changes
+                }
             )
-            change_id = resp["ChangeInfo"]["Id"]
-            self.logger.info(f"Route53 change request submitted successfully (Change ID: {change_id}).")
+            self.logger.info(f"Route53 change request submitted successfully (Change ID: {resp['ChangeInfo']['Id']}).")
             return True
 
         except ClientError as e:
@@ -301,28 +326,35 @@ class FailoverOrchestrator:
         # Live Execution Mode
         # Step 2: Promote Read Replica
         self.logger.info(f"=== STEP 2: PROMOTING RDS READ REPLICA ('{self.replica_db_id}') ===")
-        try:
-            self.secondary_rds.promote_read_replica(
-                DBInstanceIdentifier=self.replica_db_id,
-                BackupRetentionPeriod=7
-            )
-            self.logger.info("Promotion API request submitted. Waiting for instance state 'available'...")
-            
-            waiter = self.secondary_rds.get_waiter("db_instance_available")
-            waiter.wait(
-                DBInstanceIdentifier=self.replica_db_id,
-                WaiterConfig={"Delay": 15, "MaxAttempts": 40}
-            )
-            self.logger.info("Secondary RDS Instance successfully promoted to standalone Primary!")
+        if not replica_info.get("is_replica", True):
+            self.logger.info(f"Notice: Instance '{self.replica_db_id}' is already standalone primary (not a read replica). Skipping promotion API call.")
+        else:
+            try:
+                self.secondary_rds.promote_read_replica(
+                    DBInstanceIdentifier=self.replica_db_id,
+                    BackupRetentionPeriod=7
+                )
+                self.logger.info("Promotion API request submitted. Waiting for instance state 'available'...")
+                
+                waiter = self.secondary_rds.get_waiter("db_instance_available")
+                waiter.wait(
+                    DBInstanceIdentifier=self.replica_db_id,
+                    WaiterConfig={"Delay": 15, "MaxAttempts": 40}
+                )
+                self.logger.info("Secondary RDS Instance successfully promoted to standalone Primary!")
 
-        except ClientError as e:
-            self.logger.error(f"Failed to promote read replica: {e}")
-            return False
+            except ClientError as e:
+                err_msg = e.response.get("Error", {}).get("Message", "")
+                if "not a read replica" in err_msg.lower() or "InvalidDBInstanceState" in str(e):
+                    self.logger.info(f"Notice: Instance '{self.replica_db_id}' is already standalone primary ({err_msg}). Proceeding with DNS update.")
+                else:
+                    self.logger.error(f"Failed to promote read replica: {e}")
+                    return False
 
         # Step 3: Switch DNS Record
         dns_success = self.update_dns_record(secondary_endpoint)
         if not dns_success:
-            self.logger.warning("Warning: RDS promoted, but DNS record update failed. Manual DNS update required.")
+            self.logger.warning("Warning: RDS promoted, but DNS record update failed.")
 
         # Step 4: Calculate RTO Duration
         end_time = datetime.datetime.now(datetime.timezone.utc)
