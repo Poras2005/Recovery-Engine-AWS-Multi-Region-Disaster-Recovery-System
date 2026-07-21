@@ -1,0 +1,54 @@
+# Recovery-Engine Configuration File
+version: "1.0"
+
+global:
+  environment: "dev"
+  project_name: "recovery-engine"
+  target_rto_minutes: 10
+  target_rpo_minutes: 5
+
+regions:
+  primary:
+    name: "mumbai"
+    region: "ap-south-1"
+    vpc_cidr: "10.10.0.0/16"
+    public_subnet_cidrs:
+      - "10.10.1.0/24"
+      - "10.10.2.0/24"
+    private_subnet_cidrs:
+      - "10.10.10.0/24"
+      - "10.10.11.0/24"
+    availability_zones:
+      - "ap-south-1a"
+      - "ap-south-1b"
+
+  secondary:
+    name: "singapore"
+    region: "ap-southeast-1"
+    vpc_cidr: "10.20.0.0/16"
+    public_subnet_cidrs:
+      - "10.20.1.0/24"
+      - "10.20.2.0/24"
+    private_subnet_cidrs:
+      - "10.20.10.0/24"
+      - "10.20.11.0/24"
+    availability_zones:
+      - "ap-southeast-1a"
+      - "ap-southeast-1b"
+
+database:
+  engine: "mysql"
+  engine_version: "8.0"
+  instance_class: "db.t4g.micro"
+  allocated_storage_gb: 20
+  database_name: "recoverydb"
+  backup_retention_days: 7
+  primary_id: "recovery-engine-primary-db-dev"
+  replica_id: "recovery-engine-replica-db-dev"
+
+route53:
+  domain_name: "recovery-engine.internal"
+  record_name: "db.recovery-engine.internal"
+
+notifications:
+  sns_email: "alert@example.com"
