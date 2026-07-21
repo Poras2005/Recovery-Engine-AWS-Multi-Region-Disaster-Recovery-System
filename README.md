@@ -19,38 +19,8 @@ Config-driven, production-grade **Active-Passive Multi-Region Disaster Recovery 
 ---
 
 ## 🏗️ Architecture Overview
+<img width="1437" height="991" alt="diagram-export-7-22-2026-2_40_12-AM" src="https://github.com/user-attachments/assets/2402917f-1b97-4081-993e-23c20d502412" />
 
-```mermaid
-flowchart TD
-    Client["Application Client / Traffic"] --> R53["Route 53 Private Hosted Zone<br/>db.recovery-engine.internal"]
-    
-    subgraph MUM["Primary Region: Mumbai (ap-south-1)"]
-        MUM_VPC["Mumbai VPC (10.10.0.0/16)"]
-        MUM_DB[("Primary RDS MySQL<br/>recovery-engine-primary-db-dev")]
-        MUM_CW["CloudWatch Alarms<br/>CPU & Free Storage"]
-        MUM_VPC --- MUM_DB
-        MUM_CW --- MUM_DB
-    end
-
-    subgraph SGP["Secondary DR Region: Singapore (ap-southeast-1)"]
-        SGP_VPC["Singapore VPC (10.20.0.0/16)"]
-        SGP_DB[("Cross-Region Read Replica<br/>recovery-engine-replica-db-dev")]
-        SGP_CW["CloudWatch Alarm<br/>ReplicaLag > 300s"]
-        SGP_VPC --- SGP_DB
-        SGP_CW --- SGP_DB
-    end
-
-    R53 -->|"1. Active Traffic Route"| MUM_DB
-    R53 -.-|"2. Automated Failover Cutover"| SGP_DB
-
-    MUM_DB -.->|"Async Cross-Region Replication"| SGP_DB
-
-    Orchestrator["Failover Orchestrator Engine<br/>scripts/failover_orchestrator.py"] ==>|"Monitors & Updates DNS"| R53
-    Orchestrator ==>|"Promotes Replica on Outage"| SGP_DB
-
-    SNS["SNS DR Alert Topic<br/>recovery-engine-dr-alerts"] <--> MUM_CW
-    SNS <--> SGP_CW
-```
 
 ---
 
@@ -170,9 +140,5 @@ terraform destroy -auto-approve
 ```
 
 ---
-
-## 📚 Documentation & Runbooks
-* [Master Setup & Execution Guide](file:///D:/Projects/Recovery-Engine-AWS%20Multi-Region%20Disaster%20Recovery%20System/docs/Setup_Execution_Guide.md)
-* [RTO & RPO Benchmark Audit Report](file:///D:/Projects/Recovery-Engine-AWS%20Multi-Region%20Disaster%20Recovery%20System/docs/RTO_RPO_Audit_Report.md)
 
 
