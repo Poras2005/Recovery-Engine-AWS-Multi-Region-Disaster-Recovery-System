@@ -19,6 +19,13 @@ variable "route53_health_check_id" {
   default     = ""
 }
 
+variable "enable_route53_health_alarm" {
+  description = "Whether to create the Route53 Primary Endpoint Health Check Failure CloudWatch Alarm"
+  type        = bool
+  default     = true
+}
+
+
 variable "alert_email" {
   description = "Optional email address to receive SNS alert notifications"
   type        = string
