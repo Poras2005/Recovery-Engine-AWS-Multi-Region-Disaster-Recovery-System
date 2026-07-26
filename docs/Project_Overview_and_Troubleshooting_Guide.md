@@ -17,9 +17,9 @@ A **Disaster Recovery (DR) System** prevents this by automatically copying your 
 
 ### Key Words Made Easy
 * **RTO (Recovery Time Objective):** How fast the system recovers after a crash.  
-  *(Our target was $\le 10$ minutes, but our engine recovers in **4.46 seconds**!)*
+  *(Our target was 10 minutes, but our engine recovers in **4.46 seconds**!)*
 * **RPO (Recovery Point Objective):** How much data you might lose during a crash.  
-  *(Our target was $\le 5$ minutes, but our replication lag was **0.00 seconds**, meaning **zero data loss**!)*
+  *(Our target was 5 minutes, but our replication lag was **0.00 seconds**, meaning **zero data loss**!)*
 * **Primary Region:** Mumbai (`ap-south-1`) — The main active database.
 * **Secondary Region:** Singapore (`ap-southeast-1`) — The standby backup database copy.
 * **Route 53 DNS:** AWS DNS service that routes user requests (`db.recovery-engine.internal`) to the correct database.
@@ -83,9 +83,6 @@ With these fixes applied, **Recovery-Engine-AWS** achieves **100% reliability**,
 
    Scenario                          | What Breaks?           | Solution
   -----------------------------------|------------------------|-----------------------------------------------------------
-   Scenario 1: Primary DB Crash      | Mumbai RDS fails.      | Promotes Singapore replica & switches Route 53 DNS target
-                                     |                        | in 4.46s.
-   Scenario 2: Replication Lag Spike | Lag exceeds 300s.      | CloudWatch alarm fires & blocks automatic failover until
-                                     |                        | lag clears to prevent data loss.
-   Scenario 3: Total Region Loss     | Entire Mumbai region   | Health checks trip and switch all traffic to Singapore.
-                                     | goes offline.          |
+   Scenario 1: Primary DB Crash      | Mumbai RDS fails.      | Promotes Singapore replica & switches Route 53 DNS target in 4.46s.
+   Scenario 2: Replication Lag Spike | Lag exceeds 300s.      | CloudWatch alarm fires & blocks automatic failover until lag clears to prevent data loss.
+   Scenario 3: Total Region Loss     | Entire Mumbai region goes offline. | Health checks trip and switch all traffic to Singapore.
