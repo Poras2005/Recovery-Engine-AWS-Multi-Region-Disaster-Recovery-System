@@ -32,8 +32,6 @@ Config-driven, production-grade **Active-Passive Multi-Region Disaster Recovery 
 │   └── schema.json                 # JSON Schema structural validator
 ├── docs/                           # Documentation, Runbooks & Reports
 │   ├── Setup_Execution_Guide.md    # Master step-by-step installation & execution guide
-│   ├── Architecture_Guide.md       # Architecture diagrams & operational runbooks
-│   ├── Release_Checklist.md        # Production release verification checklist
 │   └── RTO_RPO_Audit_Report.md     # Generated RTO/RPO benchmark audit report
 ├── environments/                   # Terraform environment configurations
 │   ├── dev/                        # Primary development environment entrypoint
@@ -61,21 +59,6 @@ Config-driven, production-grade **Active-Passive Multi-Region Disaster Recovery 
 ```
 
 ---
-
-## 📋 Completed Modules Roadmap
-
-- [x] **Module 1 — Foundation & Networking:** Multi-region VPCs, subnets, IAM baseline, directory structure
-- [x] **Module 2 — Data Layer:** RDS MySQL Primary (Mumbai) + Cross-Region Read Replica (Singapore) + promotion engine
-- [x] **Module 3 — Failover Routing:** Route53 Private Hosted Zone + Failover routing policy & health checks
-- [x] **Module 4 — Failover Orchestration:** Dry-run capable Python failover orchestrator, health checker & failback controller
-- [x] **Module 5 — Monitoring & Alerting:** CloudWatch alarms, SNS topic, CloudWatch dashboard, and alarm simulation testing
-- [x] **Module 6 — Validation:** Chaos scenario simulator, RTO/RPO audit reporter, and automated Game-Day DR drill orchestrator
-- [x] **Module 7 — Config-Driven Packaging:** YAML loader, JSON Schema validator, zero-hardcoding scanner, & multi-environment reference packaging (`environments/prod_example`)
-- [x] **Module 8 — Documentation & Polish:** Master setup guide ([`docs/Setup_Execution_Guide.md`](file:///D:/Projects/Recovery-Engine-AWS%20Multi-Region%20Disaster%20Recovery%20System/docs/Setup_Execution_Guide.md)), architecture diagrams ([`docs/Architecture_Guide.md`](file:///D:/Projects/Recovery-Engine-AWS%20Multi-Region%20Disaster%20Recovery%20System/docs/Architecture_Guide.md)), & release checklist ([`docs/Release_Checklist.md`](file:///D:/Projects/Recovery-Engine-AWS%20Multi-Region%20Disaster%20Recovery%20System/docs/Release_Checklist.md))
-
----
-
-## 🚀 Getting Started
 
 ### Prerequisites
 * [Terraform](https://www.terraform.io/) $\ge$ 1.5.0
