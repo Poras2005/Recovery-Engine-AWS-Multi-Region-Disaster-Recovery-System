@@ -127,7 +127,7 @@ resource "aws_cloudwatch_metric_alarm" "replica_lag_rpo_breach" {
 
 # CloudWatch Alarm: Route53 Primary Endpoint Health Check Failure
 resource "aws_cloudwatch_metric_alarm" "route53_health_failure" {
-  count               = var.route53_health_check_id != "" ? 1 : 0
+  count               = var.enable_route53_health_alarm ? 1 : 0
   alarm_name          = "recovery-engine-route53-health-failure-${var.environment}"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = 1
