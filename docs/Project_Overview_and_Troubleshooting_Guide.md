@@ -76,13 +76,3 @@ During building this project, we encountered 4 real-world technical problems. He
 ## 🏁 Summary
 
 With these fixes applied, **Recovery-Engine-AWS** achieves **100% reliability**, **zero hardcoded errors**, and automated disaster recovery in **4.46 seconds**!
-
-
-─────
-  #### 3. 🌋 3 Disaster Scenarios & Solutions
-
-   Scenario                          | What Breaks?           | Solution
-  -----------------------------------|------------------------|-----------------------------------------------------------
-   Scenario 1: Primary DB Crash      | Mumbai RDS fails.      | Promotes Singapore replica & switches Route 53 DNS target in 4.46s.
-   Scenario 2: Replication Lag Spike | Lag exceeds 300s.      | CloudWatch alarm fires & blocks automatic failover until lag clears to prevent data loss.
-   Scenario 3: Total Region Loss     | Entire Mumbai region goes offline. | Health checks trip and switch all traffic to Singapore.
