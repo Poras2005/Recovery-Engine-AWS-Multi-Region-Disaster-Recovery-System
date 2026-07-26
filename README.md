@@ -12,7 +12,7 @@ Config-driven, production-grade **Active-Passive Multi-Region Disaster Recovery 
 ## 🎯 Target Service Level Objectives (SLOs)
 
 * **Target RTO (Recovery Time Objective):** $\le 10$ minutes  
-  *(Measured Live Execution Time: **4.46 seconds** — **PASSED [SLO MET]**)*
+  *(Measured Live Execution Time: **5.08 seconds** — **PASSED [SLO MET]**)*
 * **Target RPO (Recovery Point Objective):** $\le 5$ minutes  
   *(Measured Live Replication Lag: **0.00 seconds** — **PASSED [SLO MET]**)*
 
